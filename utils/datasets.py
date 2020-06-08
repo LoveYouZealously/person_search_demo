@@ -136,11 +136,10 @@ class LoadImages:  # for inference
 
 
 class LoadWebcam:  # for inference
-    def __init__(self, img_size=416, half=False):
+    def __init__(self, pipe=0, img_size=416, half=False):
         self.img_size = img_size
         self.half = half  # half precision fp16 images
 
-        pipe = 0  # local camera
         # pipe = 'rtsp://192.168.1.64/1'  # IP camera
         # pipe = 'rtsp://username:password@192.168.1.64/1'  # IP camera with login
 

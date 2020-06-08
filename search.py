@@ -199,7 +199,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', type=str, default='cfg/yolov3.cfg', help="模型配置文件路径")
     parser.add_argument('--data', type=str, default='data/coco.data', help="数据集配置文件所在路径")
-    parser.add_argument('--weights', type=str, default='weights/yolov3.weights', help='模型权重文件路径')
+    parser.add_argument('--weights', type=str, default='weights/yolo/yolov3.weights', help='模型权重文件路径')
     parser.add_argument('--images', type=str, default='data/samples', help='需要进行检测的图片文件夹')
     parser.add_argument('-q', '--query', default=r'query', help='查询图片的读取路径.')
     parser.add_argument('--img-size', type=int, default=416, help='输入分辨率大小')

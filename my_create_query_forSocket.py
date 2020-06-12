@@ -95,9 +95,10 @@ def query_detect(dataloader_item, device, model, classes):
                     query_index += 1
 
                     cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01.jpg'.format(query_index)), crop_img)
-                    # time.sleep(0.5)
+                    cv2.rectangle(im0, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
+                    # cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01_raw.jpg'.format(query_index)), im0)
         print('')
-        return crop_img
+        return crop_img, im0
 
 
 if __name__=='__main__':

@@ -79,17 +79,17 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
 
     t = time.time()
     path, img, im0, vid_cap = dataloader_item
-    print(path, img.shape, im0.shape, vid_cap)
-    print(aaa)
+    # print(path, img.shape, im0.shape, vid_cap)
+    # print(aaa)
     # data/samples/c1s1_001051.jpg (3, 320, 416) (480, 640, 3) None
     vid_path, vid_writer = None, None
 
     ############# query初始化 #############
-    if len(os.listdir('query'))<5:
+    if len(os.listdir('query'))<1:
         print('not enough query')
         return
     else:
-        if query_time_now==query_time_last or query_time_now-query_time_last>30:
+        if query_time_now==query_time_last or query_time_now-query_time_last>=1:
             query_loader, num_query = make_data_loader(reidCfg)
             
             query_feats = []

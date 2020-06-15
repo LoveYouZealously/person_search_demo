@@ -102,7 +102,10 @@ def base64_decode(img_b64):
 
 
 if __name__ == '__main__':
-    host = '10.251.133.5'
+    # host = '10.251.133.5'
+    # port = 9898
+
+    host = '10.252.97.39'
     port = 9898
 
     debug = True

@@ -53,6 +53,7 @@ def post_img1():
     global gallery
 
     data = flask.request.get_data()
+
     data_str = data.decode('utf-8')
     data_dict = json.loads(data_str)
 
@@ -60,7 +61,11 @@ def post_img1():
     query_b64 = query_str.encode('utf-8')
     query = base64_decode(query_b64)
 
-    return json.dumps({'msg': 'got img1'})
+    print('*'*10)
+    print(query.shape)
+    print('*'*10)
+
+    return json.dumps({"msg": "got img1"})
 
 
 @server.route('/getimg2', methods=['POST'])
@@ -117,8 +122,8 @@ def base64_decode(img_b64):
 
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
-    port = 8080
+    host = '10.252.97.39'
+    port = 9898
 
     debug = True
     server.run(host=host, port=port, debug=debug)

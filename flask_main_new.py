@@ -2,7 +2,23 @@ import flask
 import base64
 import numpy as np
 import cv2
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 import json
+import time
+import sys
+import random
+import torch
+
+import my_create_query_forSocket
+import my_search_forSocket
+import my_process_image
+
+
+##########  query model init  &  search model init  ##########
+with torch.no_grad():
+    dataloader_query, device_query, model_query, classes_query = my_create_query_forSocket.query_init()
+    dataloader_search, model_search, reidModel, device_search, classes_search, colors, weights = my_search_forSocket.search_init()
 
 
 server = flask.Flask(__name__)
@@ -16,35 +32,6 @@ def main():
     return flask.render_template('main_index.html')
 
 
-# def post_data():
-#     global query
-#     global gallery
-#     print(type(query))
-#     print(type(gallery))
-#
-#     data = flask.request.get_data()
-#     data_str = data.decode('utf-8')
-#     data_dict = json.loads(data_str)
-#
-#     if 'img1' in data_dict:
-#         query_str = data_dict['img1']
-#         query_b64 = query_str.encode('utf-8')
-#         query = base64_decode(query_b64)
-#         return json.dumps({'msg':'got img1'})
-#
-#     elif 'img2' in data_dict:
-#         gallery = data_dict['img2']
-#
-#     elif 'msg' in data_dict:
-#         if data_dict['msg']=='请求结果':
-#             return flask.jsonify({'img1': 'img1', 'img2': 'img2'}), 201
-#         else:
-#             return 'something wrong'
-#     else:
-#         return 'something wrong'
-#
-#     if query:
-#     post_img1()
 
 
 @server.route('/getimg1', methods=['POST'])
@@ -93,7 +80,27 @@ def post_msg():
     msg = base64_decode(msg_b64)
 
     if msg == '请求结果':
-        # TODO 算法部分
+        ########## create query ##########
+        img_res, img = my_process_image.process_img(query)
+        dataloader_item = ('query.jpg', img_res, img, None)
+        with torch.no_grad():
+            crop_img, query_withBox = my_create_query_forSocket.query_detect(dataloader_item, device_query, model_query, classes_query)
+        
+        ########## search ##########
+        img_res, img = my_process_image.process_img(gallery)
+        dataloader_item = ('gallery.jpg', img_res, img, None)
+        with torch.no_grad():
+            search_begin = time.time()
+            gallery_withBox = my_search_forSocket.search_detect(dataloader_item, model_search, reidModel, device_search, classes_search, colors, weights)
+
+        query_withBox_b64 = base64_encode(query_withBox)
+        query_withBox_str = query_withBox_b64.decode('utf-8')
+        gallery_withBox_b64 = base64_encode(gallery_withBox)
+        gallery_withBox_str = gallery_withBox_b64.decode('utf-8')
+
+        query = None
+        gallery = None
+
         return flask.jsonify({'img1': 'img1', 'img2': 'img2'}), 201
     else:
         return json.dumps({'msg': 'something wrong'})

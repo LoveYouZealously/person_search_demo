@@ -88,15 +88,18 @@ def query_detect(dataloader_item, device, model, classes):
                 h = ymax - ymin # 602
                 # 如果检测到的行人太小了，感觉意义也不大
                 # 这里需要根据实际情况稍微设置下
-                if h>2*w and h*w > 300*150:
+                if h>2*w and h*w > 100*50:
                     print(h, w)
                     crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3
-                    query_index = query_index % 5
-                    query_index += 1
+                    # query_index = query_index % 5
+                    # query_index += 1
+                    query_index = 1
 
                     cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01.jpg'.format(query_index)), crop_img)
                     cv2.rectangle(im0, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
                     # cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01_raw.jpg'.format(query_index)), im0)
+
+        im0 = cv2.flip(im0, 1)
         print('')
         return crop_img, im0
 

@@ -157,12 +157,16 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
                 # 如果检测到的行人太小了，感觉意义也不大
                 # 这里需要根据实际情况稍微设置下
                 # if w*h > 500:
-                if h>2*w and h*w > 300*150:
+                if h>2*w and h*w > 100*50:
                     gallery_loc.append((xmin, ymin, xmax, ymax))
                     crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3)
                     crop_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB))  # PIL: (233, 602)
                     crop_img = build_transforms(reidCfg)(crop_img).unsqueeze(0)  # torch.Size([1, 3, 256, 128])
                     gallery_img.append(crop_img)
+
+
+        '''flip image and box'''
+        im0 = cv2.flip(im0, 1)
 
         if gallery_img:
             gallery_img = torch.cat(gallery_img, dim=0)  # torch.Size([7, 3, 256, 128])
@@ -188,14 +192,23 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
             #                     [1.78843, 1.96036, 0.53674, 1.98929, 1.99490, 1.84878, 1.98575]])
             distmat = distmat.cpu().numpy()  # <class 'tuple'>: (3, 12)
             distmat = distmat.sum(axis=0) / len(query_feats) # 平均一下query中同一行人的多个结果
-            index = distmat.argmin()
+            index = distmat.argmin()            
             if distmat[index] < dist_thres:
                 print('距离：%s'%distmat[index])
-                plot_one_box(gallery_loc[index], im0, label='find!', color=colors[int(cls)])
+                
+                # print(gallery_loc[index])
+                xmin = im0.shape[1] - gallery_loc[index][2]
+                ymin = im0.shape[0] - gallery_loc[index][3]
+                xmax = im0.shape[1] - gallery_loc[index][0]
+                ymax = im0.shape[0] - gallery_loc[index][1]
+
+                # plot_one_box(gallery_loc[index], im0, label='find!', color=colors[int(cls)])
+                plot_one_box((xmin, ymin, xmax, ymax), im0, label='find!', color=colors[int(cls)])
                 # cv2.imshow('person search', im0)
                 # cv2.waitKey()
 
     print('Done. (%.3fs)' % (time.time() - t))
+
 
     '''show image'''
     # cv2.imshow(weights, im0)

@@ -12,14 +12,16 @@ import torch
 from flask_cors import CORS
 
 import my_create_query_forSocket
-import my_search_forSocket
+import my_search_forSocket_new
 import my_process_image
+
+# TODO: BUG: 再次请求的时候，全局变量不会重置
 
 
 ##########  query model init  &  search model init  ##########
 with torch.no_grad():
-    dataloader_query, device_query, model_query, classes_query = my_create_query_forSocket.query_init()
-    dataloader_search, model_search, reidModel, device_search, classes_search, colors, weights = my_search_forSocket.search_init()
+    dataloader_query, device_query, model_query, classes_query, colors_query = my_create_query_forSocket.query_init()
+    dataloader_search, model_search, reidModel, device_search, classes_search, colors_search, weights = my_search_forSocket_new.search_init()
 
 
 
@@ -116,14 +118,14 @@ def post_msg():
         img_res, img = my_process_image.process_img(query)
         dataloader_item = ('query.jpg', img_res, img, None)
         with torch.no_grad():
-            crop_img, query_withBox = my_create_query_forSocket.query_detect(dataloader_item, device_query, model_query, classes_query)
+            crop_img, query_withBox = my_create_query_forSocket.query_detect(dataloader_item, device_query, model_query, classes_query, colors_query)
         
         ########## search ##########
         img_res, img = my_process_image.process_img(gallery)
         dataloader_item = ('gallery.jpg', img_res, img, None)
         with torch.no_grad():
             search_begin = time.time()
-            gallery_withBox = my_search_forSocket.search_detect(dataloader_item, model_search, reidModel, device_search, classes_search, colors, weights)
+            gallery_withBox = my_search_forSocket_new.search_detect(dataloader_item, model_search, reidModel, device_search, classes_search, colors_search, weights)
 
         query_withBox_b64 = base64_encode(query_withBox)
         query_withBox_str = query_withBox_b64.decode('utf-8')
@@ -160,8 +162,10 @@ def base64_decode(img_b64):
 
 
 if __name__ == '__main__':
-    host = '10.252.97.39'
-    port = 9898
+    # host = '10.252.97.39'
+    # port = 9898
+    host = '127.0.0.1'
+    port = 8080
 
     debug = True
     server.run(host=host, port=port, debug=debug)

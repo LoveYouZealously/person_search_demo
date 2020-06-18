@@ -41,12 +41,21 @@ def query_init():
     # Get classes and colors
     # parse_data_cfg(data)['names']:得到类别名称文件路径 names=data/coco.names
     classes = load_classes(parse_data_cfg(data)['names']) # 得到类别名列表: ['person', 'bicycle'...]
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
-    
-    return dataloader, device, model, classes
+    # colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
+    colors_hex_list = ['#000000', '#CCFF00', '#666699', '#FF9999', '#99CC66', '#FF0033', '#FFCC00', '#FF6600', '#CC3399', '#666633', '#FFFF66', '#99CC33', '#FF9900',
+             '#FF99CC', '#993366', '#CCFF66', '#66CCCC', '#FFCC99', '#CCCC33', '#FF9966', '#FF6666']
+    colors_rgb_list = []
+    for hex_num in colors_hex_list:
+        # print(hex_num)
+        r_int = int('0x' + hex_num[1:3], 16)
+        g_int = int('0x' + hex_num[3:5], 16)
+        b_int = int('0x' + hex_num[5:7], 16)
+        colors_rgb_list.append((r_int, g_int, b_int))
+
+    return dataloader, device, model, classes, colors_rgb_list
 
 
-def query_detect(dataloader_item, device, model, classes):
+def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
     crop_img = None
 
     global query_index
@@ -75,6 +84,7 @@ def query_detect(dataloader_item, device, model, classes):
         # (x1y1x2y2, obj_conf, class_conf, class_pred)
         gallery_img = []
         gallery_loc = []
+        im0_forDrawing = np.copy(im0)
         for *xyxy, conf, cls_conf, cls in det: # 对于最后的预测框进行遍历
             # Add bbox to the image
             label = '%s %.2f' % (classes[int(cls)], conf) # 'person 1.00'
@@ -88,27 +98,32 @@ def query_detect(dataloader_item, device, model, classes):
                 h = ymax - ymin # 602
                 # 如果检测到的行人太小了，感觉意义也不大
                 # 这里需要根据实际情况稍微设置下
-                if h>2*w and h*w > 100*50:
+                # if h>2*w and h*w > 100*50:
+                if h > 2*w and h*w > 1:
                     print(h, w)
                     crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3
-                    # query_index = query_index % 5
-                    # query_index += 1
-                    query_index = 1
 
-                    cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01.jpg'.format(query_index)), crop_img)
-                    cv2.rectangle(im0, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
-                    # cv2.imwrite(os.path.join(query_dirpath, '9001_c9s1_00000{}_01_raw.jpg'.format(query_index)), im0)
+                    query_index += 1
+                    print('query_index', query_index)
+
+                    cv2.imwrite(os.path.join(query_dirpath, '900{}_c9s1_000001_01.jpg'.format(query_index)), crop_img)
+                    plot_one_box(
+                        (xmin, ymin, xmax, ymax), im0_forDrawing,
+                        label='{}'.format(query_index),
+                        color=colors_rgb_list[int(query_index)]
+                    )
 
         im0 = cv2.flip(im0, 1)
+        cv2.imwrite(os.path.join(r'C:\Users\10156672\Desktop', '9001_c9s1_000001_01_raw.jpg'), im0_forDrawing)
         print('')
         return crop_img, im0
 
 
 if __name__=='__main__':
-    dataloader, device, model, classes = query_init()
+    dataloader, device, model, classes, colors = query_init()
 
     for i, dataloader_item in enumerate(dataloader):
-        query_detect(dataloader_item, device, model, classes)
+        query_detect(dataloader_item, device, model, classes, colors)
 
 
 

@@ -23,7 +23,8 @@ def search_init():
     cfg='cfg/yolov3.cfg' # 模型配置文件路径
     data = 'data/coco.data'
     weights = 'weights/yolo/yolov3.weights'
-    images='data/samples'
+    # images='data/samples'
+    images=r'D:\Face_Person_Recognition\Test\temp'
     img_size=416
     half=False
 
@@ -53,15 +54,24 @@ def search_init():
 
     # Set Dataloader
     # dataloader = LoadWebcam(pipe=1, img_size=img_size, half=half)
-    # dataloader = LoadImages(images, img_size=img_size, half=half)
-    dataloader = None
+    dataloader = LoadImages(images, img_size=img_size, half=half)
+    # dataloader = None
 
     # Get classes and colors
     # parse_data_cfg(data)['names']:得到类别名称文件路径 names=data/coco.names
     classes = load_classes(parse_data_cfg(data)['names']) # 得到类别名列表: ['person', 'bicycle'...]
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))] # 对于每种类别随机使用一种颜色画框
+    # colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))] # 对于每种类别随机使用一种颜色画框
+    colors_hex_list = ['#000000', '#CCFF00', '#666699', '#FF9999', '#99CC66', '#FF0033', '#FFCC00', '#FF6600', '#CC3399', '#666633', '#FFFF66', '#99CC33', '#FF9900',
+             '#FF99CC', '#993366', '#CCFF66', '#66CCCC', '#FFCC99', '#CCCC33', '#FF9966', '#FF6666']
+    colors_rgb_list = []
+    for hex_num in colors_hex_list:
+        # print(hex_num)
+        r_int = int('0x' + hex_num[1:3], 16)
+        g_int = int('0x' + hex_num[3:5], 16)
+        b_int = int('0x' + hex_num[5:7], 16)
+        colors_rgb_list.append((r_int, g_int, b_int))
 
-    return dataloader, model, reidModel, device, classes, colors, weights
+    return dataloader, model, reidModel, device, classes, colors_rgb_list, weights
 
 
 def search_detect(dataloader_item, model, reidModel, device, classes, colors, weights):
@@ -77,6 +87,9 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
 
     t = time.time()
     path, img, im0, vid_cap = dataloader_item
+    '''flip image and box'''
+    im0_forDrawing = np.copy(im0)
+    im0_forDrawing = cv2.flip(im0_forDrawing, 1)
     # print(path, img.shape, im0.shape, vid_cap)
     # print(aaa)
     # data/samples/c1s1_001051.jpg (3, 320, 416) (480, 640, 3) None
@@ -160,10 +173,6 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
                     crop_img = build_transforms(reidCfg)(crop_img).unsqueeze(0)  # torch.Size([1, 3, 256, 128])
                     gallery_img.append(crop_img)
 
-
-        '''flip image and box'''
-        im0 = cv2.flip(im0, 1)
-
         if gallery_img:
             gallery_img = torch.cat(gallery_img, dim=0)  # torch.Size([7, 3, 256, 128])
             gallery_img = gallery_img.to(device)
@@ -173,41 +182,53 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
 
             # m: 2
             # n: 7
-            m, n = query_feats.shape[0], gallery_feats.shape[0]
-            distmat = torch.pow(query_feats, 2).sum(dim=1, keepdim=True).expand(m, n) + \
-                      torch.pow(gallery_feats, 2).sum(dim=1, keepdim=True).expand(n, m).t()
-            # out=(beta∗M)+(alpha∗mat1@mat2)
-            # qf^2 + gf^2 - 2 * qf@gf.t()
-            # distmat - 2 * qf@gf.t()
-            # distmat: qf^2 + gf^2
-            # qf: torch.Size([2, 2048])
-            # gf: torch.Size([7, 2048])
-            distmat.addmm_(1, -2, query_feats, gallery_feats.t())
-            # distmat = (qf - gf)^2
-            # distmat = np.array([[1.79536, 2.00926, 0.52790, 1.98851, 2.15138, 1.75929, 1.99410],
-            #                     [1.78843, 1.96036, 0.53674, 1.98929, 1.99490, 1.84878, 1.98575]])
-            distmat = distmat.cpu().numpy()  # <class 'tuple'>: (3, 12)
-            distmat = distmat.sum(axis=0) / len(query_feats) # 平均一下query中同一行人的多个结果
-            index = distmat.argmin()            
-            if distmat[index] < dist_thres:
-                print('距离：%s'%distmat[index])
-                
-                # print(gallery_loc[index])
-                xmin = im0.shape[1] - gallery_loc[index][2]
-                ymin = im0.shape[0] - gallery_loc[index][3]
-                xmax = im0.shape[1] - gallery_loc[index][0]
-                ymax = im0.shape[0] - gallery_loc[index][1]
+            # m = query_feats.shape[0]
+            m = 1
+            n = gallery_feats.shape[0]
 
-                # plot_one_box(gallery_loc[index], im0, label='find!', color=colors[int(cls)])
-                plot_one_box((xmin, ymin, xmax, ymax), im0, label='find!', color=colors[int(cls)])
-                # cv2.imshow('person search', im0)
-                # cv2.waitKey()
+            for query_i, query_feat in enumerate(query_feats):
+                query_feat = query_feat.unsqueeze(0)
+                distmat = torch.pow(query_feat, 2).sum(dim=1, keepdim=True).expand(m, n) + \
+                          torch.pow(gallery_feats, 2).sum(dim=1, keepdim=True).expand(n, m).t()
+                '''
+                gallery_feats.shape = (6, 2048)
+                pow后：(6,2048)
+                sum后：(6,1)
+                expand后：(6,6)
+                '''
+
+                # out=(beta∗M)+(alpha∗mat1@mat2)
+                # qf^2 + gf^2 - 2 * qf@gf.t()
+                # distmat - 2 * qf@gf.t()
+                # distmat: qf^2 + gf^2
+                # qf: torch.Size([2, 2048])
+                # gf: torch.Size([7, 2048])
+                distmat.addmm_(1, -2, query_feat, gallery_feats.t())
+                # distmat = (qf - gf)^2
+                # distmat = np.array([[1.79536, 2.00926, 0.52790, 1.98851, 2.15138, 1.75929, 1.99410],
+                #                     [1.78843, 1.96036, 0.53674, 1.98929, 1.99490, 1.84878, 1.98575]])
+                distmat = distmat.cpu().numpy()  # <class 'tuple'>: (3, 12)
+                index = distmat.argmin()
+                if distmat[0][index] < dist_thres:
+                    print('距离：%s'%distmat[0][index])
+
+                    # print(gallery_loc[index])
+                    xmin = im0_forDrawing.shape[1] - gallery_loc[index][2]
+                    ymin = gallery_loc[index][1]
+                    xmax = im0_forDrawing.shape[1] - gallery_loc[index][0]
+                    ymax = gallery_loc[index][3]
+
+                    # plot_one_box(gallery_loc[index], im0, label='find!', color=colors[int(cls)])
+                    plot_one_box((xmin, ymin, xmax, ymax), im0_forDrawing, label='{}'.format(query_i+1), color=colors[int(query_i+1)])
+                    # cv2.imshow('person search', im0)
+                    # cv2.waitKey()
 
     print('Done. (%.3fs)' % (time.time() - t))
 
 
     '''show image'''
-    # cv2.imshow(weights, im0)
+    cv2.imshow(weights, im0_forDrawing)
+    cv2.waitKey(0)
 
     '''save image'''
     # cv2.imwrite(save_path, im0)
@@ -224,7 +245,7 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
 #         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (width, height))
 #     vid_writer.write(im0)
 
-    return im0
+    return im0_forDrawing
 
 
 

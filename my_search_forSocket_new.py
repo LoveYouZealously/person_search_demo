@@ -54,8 +54,8 @@ def search_init():
 
     # Set Dataloader
     # dataloader = LoadWebcam(pipe=1, img_size=img_size, half=half)
-    dataloader = LoadImages(images, img_size=img_size, half=half)
-    # dataloader = None
+    # dataloader = LoadImages(images, img_size=img_size, half=half)
+    dataloader = None
 
     # Get classes and colors
     # parse_data_cfg(data)['names']:得到类别名称文件路径 names=data/coco.names
@@ -227,8 +227,8 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
 
 
     '''show image'''
-    cv2.imshow(weights, im0_forDrawing)
-    cv2.waitKey(0)
+    # cv2.imshow(weights, im0_forDrawing)
+    # cv2.waitKey(0)
 
     '''save image'''
     # cv2.imwrite(save_path, im0)

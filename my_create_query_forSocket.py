@@ -114,7 +114,7 @@ def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
                     )
 
         im0 = cv2.flip(im0, 1)
-        cv2.imwrite(os.path.join(r'C:\Users\10156672\Desktop', '9001_c9s1_000001_01_raw.jpg'), im0_forDrawing)
+        # cv2.imwrite(os.path.join(r'C:\Users\10156672\Desktop', '9001_c9s1_000001_01_raw.jpg'), im0_forDrawing)
         print('')
         return crop_img, im0
 

@@ -162,10 +162,10 @@ def base64_decode(img_b64):
 
 
 if __name__ == '__main__':
-    # host = '10.252.97.39'
-    # port = 9898
-    host = '127.0.0.1'
-    port = 8080
+    host = '10.252.97.39'
+    port = 9898
+    # host = '127.0.0.1'
+    # port = 8080
 
     debug = True
     server.run(host=host, port=port, debug=debug)

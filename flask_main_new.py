@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+import shutil
 import json
 import time
 import sys
@@ -12,7 +13,7 @@ import torch
 from flask_cors import CORS
 
 import my_create_query_forSocket
-import my_search_forSocket_new
+import my_search_forSocket_multi
 import my_process_image
 
 # TODO: BUG: 再次请求的时候，全局变量不会重置
@@ -21,7 +22,7 @@ import my_process_image
 ##########  query model init  &  search model init  ##########
 with torch.no_grad():
     dataloader_query, device_query, model_query, classes_query, colors_query = my_create_query_forSocket.query_init()
-    dataloader_search, model_search, reidModel, device_search, classes_search, colors_search, weights = my_search_forSocket_new.search_init()
+    dataloader_search, model_search, reidModel, device_search, classes_search, colors_search, weights = my_search_forSocket_multi.search_init()
 
 
 
@@ -113,33 +114,40 @@ def post_msg():
     # msg_b64 = msg_str.encode('utf-8')
     # msg = base64_decode(msg_b64)
 
-    if msg_str == '请求结果':
-        ########## create query ##########
-        img_res, img = my_process_image.process_img(query)
-        dataloader_item = ('query.jpg', img_res, img, None)
-        with torch.no_grad():
-            crop_img, query_withBox = my_create_query_forSocket.query_detect(dataloader_item, device_query, model_query, classes_query, colors_query)
-        
-        ########## search ##########
-        img_res, img = my_process_image.process_img(gallery)
-        dataloader_item = ('gallery.jpg', img_res, img, None)
-        with torch.no_grad():
-            search_begin = time.time()
-            gallery_withBox = my_search_forSocket_new.search_detect(dataloader_item, model_search, reidModel, device_search, classes_search, colors_search, weights)
+    try:
+        if msg_str == '请求结果':
+            ########## create query ##########
+            img_res, img = my_process_image.process_img(query)
+            dataloader_item = ('query.jpg', img_res, img, None)
+            with torch.no_grad():
+                query_withBox = my_create_query_forSocket.query_detect(dataloader_item, device_query, model_query, classes_query, colors_query)
 
-        query_withBox_b64 = base64_encode(query_withBox)
-        query_withBox_str = query_withBox_b64.decode('utf-8')
-        gallery_withBox_b64 = base64_encode(gallery_withBox)
-        gallery_withBox_str = gallery_withBox_b64.decode('utf-8')
+            ########## search ##########
+            img_res, img = my_process_image.process_img(gallery)
+            dataloader_item = ('gallery.jpg', img_res, img, None)
+            with torch.no_grad():
+                search_begin = time.time()
+                gallery_withBox = my_search_forSocket_multi.search_detect(dataloader_item, model_search, reidModel, device_search, classes_search, colors_search, weights)
 
+            query_withBox_b64 = base64_encode(query_withBox)
+            query_withBox_str = query_withBox_b64.decode('utf-8')
+            gallery_withBox_b64 = base64_encode(gallery_withBox)
+            gallery_withBox_str = gallery_withBox_b64.decode('utf-8')
+
+            response = flask.jsonify({"img1": query_withBox_str, "img2": gallery_withBox_str}), 201
+        else:
+            response = json.dumps({"msg": "something wrong"})
+    except Exception as e:
+        print(e)
+        response = json.dumps({"msg": "something wrong"})
+    finally:
         query = None
         gallery = None
+        my_create_query_forSocket.query_index = 0
+        shutil.rmtree('query')
+        os.mkdir('query')
 
-        return flask.jsonify({"img1": query_withBox_str, "img2": gallery_withBox_str}), 201
-    else:
-        query = None
-        gallery = None
-        return json.dumps({"msg": "something wrong"})
+        return response
 
 
 def base64_encode(img_bgr):
@@ -162,7 +170,7 @@ def base64_decode(img_b64):
 
 
 if __name__ == '__main__':
-    host = '10.252.97.39'
+    host = '10.251.133.5'
     port = 9898
     # host = '127.0.0.1'
     # port = 8080

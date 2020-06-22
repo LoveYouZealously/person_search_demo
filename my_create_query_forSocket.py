@@ -56,7 +56,7 @@ def query_init():
 
 
 def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
-    crop_img = None
+    # cropImg_pid_camid_list = []
 
     global query_index
     conf_thres=0.5
@@ -85,6 +85,7 @@ def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
         gallery_img = []
         gallery_loc = []
         im0_forDrawing = np.copy(im0)
+        im0_forDrawing = cv2.flip(im0_forDrawing, 1)
         for *xyxy, conf, cls_conf, cls in det: # 对于最后的预测框进行遍历
             # Add bbox to the image
             label = '%s %.2f' % (classes[int(cls)], conf) # 'person 1.00'
@@ -101,22 +102,25 @@ def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
                 # if h>2*w and h*w > 100*50:
                 if h > 2*w and h*w > 1:
                     print(h, w)
-                    crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3
+                    crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3)
+                    crop_img = cv2.flip(crop_img, 1)
 
                     query_index += 1
                     print('query_index', query_index)
+                    
+                    xmin_f = im0_forDrawing.shape[1] - xmax
+                    xmax_f = im0_forDrawing.shape[1] - xmin
 
                     cv2.imwrite(os.path.join(query_dirpath, '900{}_c9s1_000001_01.jpg'.format(query_index)), crop_img)
                     plot_one_box(
-                        (xmin, ymin, xmax, ymax), im0_forDrawing,
+                        (xmin_f, ymin, xmax_f, ymax), im0_forDrawing,
                         label='{}'.format(query_index),
                         color=colors_rgb_list[int(query_index)]
                     )
 
-        im0 = cv2.flip(im0, 1)
         # cv2.imwrite(os.path.join(r'C:\Users\10156672\Desktop', '9001_c9s1_000001_01_raw.jpg'), im0_forDrawing)
-        print('')
-        return crop_img, im0
+        print('---------- query created ----------')
+        return im0_forDrawing
 
 
 if __name__=='__main__':

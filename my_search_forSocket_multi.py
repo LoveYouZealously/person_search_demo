@@ -107,6 +107,11 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
             for i, batch in enumerate(query_loader):
                 with torch.no_grad():
                     img_q, pid, camid = batch
+                    """
+                    print(type(img_q), img_q.dtype, img_q.shape)  # <class 'torch.Tensor'> torch.float32, torch.Size([1, 3, 256, 128])
+                    print(pid)  # (9001,)
+                    print(camid)  # (8,)
+                    """
                     img_q = img_q.to(device)
                     feat = reidModel(img_q)         # 一共2张待查询图片，每张图片特征向量2048 torch.Size([2, 2048])
                     query_feats.append(feat)
@@ -122,9 +127,9 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
     query_time_now = time.time()
     ############# query初始化 END #############
 
-    if not os.path.exists(output):
-        os.makedirs(output)
-    save_path = str(Path(output) / Path(path).name) # 保存的路径
+    # if not os.path.exists(output):
+    #     os.makedirs(output)
+    # save_path = str(Path(output) / Path(path).name) # 保存的路径
 
     # Get detections shape: (3, 416, 320)
     img = torch.from_numpy(img).unsqueeze(0).to(device) # torch.Size([1, 3, 416, 320])

@@ -171,7 +171,7 @@ def search_detect(dataloader_item, model, reidModel, device, classes, colors, we
                 # 如果检测到的行人太小了，感觉意义也不大
                 # 这里需要根据实际情况稍微设置下
                 # if h>2*w and h*w > 100*50:
-                if h > 2*w and h*w > 1:
+                if h > 100 and w > 100:
                     gallery_loc.append((xmin, ymin, xmax, ymax))
                     crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3)
                     crop_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB))  # PIL: (233, 602)

@@ -100,7 +100,7 @@ def query_detect(dataloader_item, device, model, classes, colors_rgb_list):
                 # 如果检测到的行人太小了，感觉意义也不大
                 # 这里需要根据实际情况稍微设置下
                 # if h>2*w and h*w > 100*50:
-                if h > 2*w and h*w > 1:
+                if h > 100 and w > 50:
                     print(h, w)
                     crop_img = im0[ymin:ymax, xmin:xmax] # HWC (602, 233, 3)
                     crop_img = cv2.flip(crop_img, 1)
